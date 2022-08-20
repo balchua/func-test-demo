@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: {{.Release.Namespace}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: postgres
+  template:
+    metadata:
+      annotations:
+        linkerd.io/inject: enabled
+      labels:
+        app.kubernetes.io/name: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14.5
+          imagePullPolicy: "IfNotPresent"
+          # command: [ "/bin/bash", "-c", "--" ]
+          # args: [ "while true; do sleep 30; done;" ]
+          # args: ["-c", "config_file=/etc/postgres/postgres.conf"]
+          #command: [ "docker-entrypoint.sh", "-c", "config_file=/etc/postgresql/postgresql.conf" ]
+          ports: 
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: postgres-config
+            - secretRef:
+                name: postgres-secrets
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres
+            {{- if  .Values.hugepages_2Mi.enabled }}
+            - mountPath: /hugepages-2Mi
+              name: hugepage-2mi
+          resources:
+            limits:
+              hugepages-2Mi: 256Mi
+              memory: 256Mi
+            requests:
+              memory: 256Mi
+            {{- end }}                        
+      volumes:
+      {{ if  .Values.db.pvc.enabled }}
+        - name: postgres
+          persistentVolumeClaim:
+            claimName: postgres-pv-claim
+      {{ else }}
+        - name: postgres
+          emptyDir: {}
+      {{ end }}
+      {{- if  .Values.hugepages_2Mi.enabled }}      
+        - name: hugepage-2mi
+          emptyDir:
+            medium: HugePages-2Mi          
+      {{- end }}

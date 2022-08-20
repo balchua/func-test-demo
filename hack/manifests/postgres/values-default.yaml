@@ -1,0 +1,8 @@
+db:
+  pvc:
+    enabled: false
+  user: postgresadmin
+  password: admin123  
+service:
+  type: NodePort
+  nodePort: 30432
