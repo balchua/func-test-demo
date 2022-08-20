@@ -2,10 +2,14 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strconv"
+	"testing"
 
 	fdb "github.com/balchua/func-test-demo/pkg/datastore"
 	"github.com/cucumber/godog"
+	"github.com/cucumber/godog/colors"
+	"github.com/spf13/pflag"
 )
 
 type basket struct {
@@ -100,4 +104,23 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^the ingredients "([^"]*)", "([^"]*)", "([^"]*)"$`, b.withIngredients)
 	// Then
 	ctx.Step(`^it should be a "([^"]*)" pizza$`, b.ofQuality)
+}
+
+var opts = godog.Options{Output: colors.Colored(os.Stdout)}
+
+func init() {
+	godog.BindCommandLineFlags("godog.", &opts)
+}
+
+func TestMain(m *testing.M) {
+	pflag.Parse()
+	opts.Paths = pflag.Args()
+
+	status := godog.TestSuite{
+		Name:                "pizza",
+		ScenarioInitializer: InitializeScenario,
+		Options:             &opts,
+	}.Run()
+
+	os.Exit(status)
 }
